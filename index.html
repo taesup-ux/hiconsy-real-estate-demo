@@ -202,6 +202,17 @@
   }
   function onMessage(event) {
     const expected = config().bridgeMessageOrigin;
+    if (/(?:^|[?&])debugBridge=1(?:&|$)/.test(global.location.search || '')) {
+      const value = event && event.data;
+      global.console.warn('CANARY_BRIDGE_DIAGNOSTIC', JSON.stringify({
+        origin: event && event.origin,
+        expected,
+        type: value && value.type,
+        requestId: value && value.requestId,
+        pending: Boolean(value && pending.has(value.requestId)),
+        hasPayload: Boolean(value && Object.prototype.hasOwnProperty.call(value, 'payload'))
+      }));
+    }
     if (!expected || event.origin !== expected) return;
     const data = event.data;
     if (!data || data.type !== 'hiconsy-canary-response' || typeof data.requestId !== 'string') return;
