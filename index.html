@@ -42,7 +42,7 @@
   </main>
   <dialog id="detail-dialog" class="detail-dialog"><div class="detail-head"><div><p class="eyebrow">LEASE &amp; PAYMENT DETAIL</p><h2 id="detail-title">계약 상세</h2></div><button id="detail-close" class="button secondary" type="button">닫기</button></div><div id="detail-body" class="detail-grid"></div></dialog>
   <script src="https://accounts.google.com/gsi/client" async defer onload="window.CanaryAuth && window.CanaryAuth.initializeGoogle()"></script>
-  <script>window.CANARY_PUBLIC_CONFIG = {"clientId":"43992222283-piv3v0cnjn9hdbtc376pkmnuoa69qude.apps.googleusercontent.com","bridgeUrl":"https://script.google.com/macros/s/AKfycbyORXCE4bUADK8zWes-IoJtP8T-F67xiRC3BLFQQlarXcFrt7J8swNr3fWwjUBgODEs/exec","bridgeMessageOrigin":"https://n-ewqivjylikjtkbqvzg6exveirpkbwvotxu6ui7q-0lu-script.googleusercontent.com","profile":"demo-personal","buildSha":"5e9c455205e1c4cbc2cdfb09b5fa434790bbd620"};</script>
+  <script>window.CANARY_PUBLIC_CONFIG = {"clientId":"43992222283-piv3v0cnjn9hdbtc376pkmnuoa69qude.apps.googleusercontent.com","bridgeUrl":"https://script.google.com/macros/s/AKfycbyORXCE4bUADK8zWes-IoJtP8T-F67xiRC3BLFQQlarXcFrt7J8swNr3fWwjUBgODEs/exec","bridgeMessageOrigin":"https://n-ewqivjylikjtkbqvzg6exveirpkbwvotxu6ui7q-0lu-script.googleusercontent.com","profile":"demo-personal","buildSha":"e41bf1b81c10cc2a9addb7e38bcba890130162da"};</script>
   <script>
 (function (root, factory) {
   var api = factory();
@@ -221,12 +221,18 @@
     input.type = 'hidden'; input.name = name; input.value = value;
     return input;
   }
-  function request(token) {
+  function submit(action, values) {
     const cfg = config();
-    if (typeof token !== 'string' || token.length < 100) return Promise.reject(new Error('AUTH_TOKEN_MISSING'));
     if (!validUrl(cfg.bridgeUrl, /^script\.google\.com$/) ||
         !validUrl(cfg.bridgeMessageOrigin, /-script\.googleusercontent\.com$/)) {
       return Promise.reject(new Error('BRIDGE_CONFIG_INVALID'));
+    }
+    if (!['data','request_access','request_status','decide_access'].includes(action)) return Promise.reject(new Error('BRIDGE_ACTION_INVALID'));
+    const payload = values || {};
+    if (action !== 'decide_access' && (typeof payload.idToken !== 'string' || payload.idToken.length < 100)) return Promise.reject(new Error('AUTH_TOKEN_MISSING'));
+    if (action === 'decide_access' && (!/^car_[a-z0-9]{32}$/i.test(String(payload.accessRequestId || '')) ||
+        !/^(approve|reject)$/.test(String(payload.decision || '')) || !/^[a-f0-9]{64}$/i.test(String(payload.decisionToken || '')))) {
+      return Promise.reject(new Error('APPROVAL_TOKEN_INVALID'));
     }
     ensureListener();
     const id = requestId();
@@ -234,7 +240,11 @@
     frame.name = 'hiconsy-canary-' + id; frame.hidden = true; frame.title = '보안 데이터 전송';
     const form = document.createElement('form');
     form.method = 'post'; form.action = cfg.bridgeUrl; form.target = frame.name; form.hidden = true;
-    form.append(hidden('mode', 'bridge'), hidden('requestId', id), hidden('idToken', token), hidden('frontendOrigin', global.location.origin));
+    form.append(hidden('mode', 'bridge'), hidden('requestId', id), hidden('action', action), hidden('frontendOrigin', global.location.origin));
+    if (payload.idToken) form.append(hidden('idToken', payload.idToken));
+    if (payload.accessRequestId) form.append(hidden('accessRequestId', payload.accessRequestId));
+    if (payload.decision) form.append(hidden('decision', payload.decision));
+    if (payload.decisionToken) form.append(hidden('decisionToken', payload.decisionToken));
     document.body.append(frame, form);
     return new Promise((resolve, reject) => {
       const timer = global.setTimeout(() => {
@@ -246,7 +256,75 @@
       global.setTimeout(() => { while (form.firstChild) form.removeChild(form.firstChild); }, 0);
     });
   }
-  global.CanaryFormTransport = Object.freeze({ request });
+  function request(token) { return submit('data', { idToken: token }); }
+  function requestAccess(token) { return submit('request_access', { idToken: token }); }
+  function requestStatus(token, accessRequestId) { return submit('request_status', { idToken: token, accessRequestId }); }
+  function decideAccess(accessRequestId, decision, decisionToken) { return submit('decide_access', { accessRequestId, decision, decisionToken }); }
+  global.CanaryFormTransport = Object.freeze({ request, requestAccess, requestStatus, decideAccess });
+})(window);
+
+</script><script>
+(function (global) {
+  'use strict';
+  let timer = null;
+  let stopped = false;
+
+  function transport() {
+    const value = global.CanaryFormTransport;
+    if (!value || typeof value.requestAccess !== 'function' || typeof value.requestStatus !== 'function' || typeof value.decideAccess !== 'function') throw new Error('TRANSPORT_UNAVAILABLE');
+    return value;
+  }
+  function cancel() {
+    stopped = true;
+    if (timer !== null) global.clearTimeout(timer);
+    timer = null;
+  }
+  function wait(callback) { timer = global.setTimeout(callback, 5000); }
+  function terminal(response, hooks) {
+    cancel();
+    if (hooks && typeof hooks.onTerminal === 'function') hooks.onTerminal(response || { code: 'SERVER_ERROR' });
+  }
+  async function begin(idToken, hooks) {
+    cancel(); stopped = false;
+    let request;
+    try { request = await transport().requestAccess(idToken); }
+    catch (_) { return terminal({ code: 'SERVER_ERROR' }, hooks); }
+    if (request && request.code === 'ALREADY_GRANTED') {
+      cancel(); if (hooks && typeof hooks.onApproved === 'function') hooks.onApproved(request); return;
+    }
+    if (!request || request.code !== 'REQUEST_PENDING') return terminal(request, hooks);
+    if (hooks && typeof hooks.onPending === 'function') hooks.onPending(request);
+    const requestId = request.request_id;
+    const poll = async () => {
+      if (stopped) return;
+      let status;
+      try { status = await transport().requestStatus(idToken, requestId); }
+      catch (_) { return terminal({ code: 'SERVER_ERROR' }, hooks); }
+      if (status && status.ok === true && status.status === 'approved') {
+        cancel(); if (hooks && typeof hooks.onApproved === 'function') hooks.onApproved(status); return;
+      }
+      if (status && status.code === 'REQUEST_PENDING') {
+        if (hooks && typeof hooks.onPending === 'function') hooks.onPending(status);
+        wait(poll); return;
+      }
+      terminal(status, hooks);
+    };
+    wait(poll);
+  }
+  function consumeDecision() {
+    const query = new URLSearchParams(global.location.search || '');
+    const decision = query.get('decision');
+    const fragment = new URLSearchParams((global.location.hash || '').replace(/^#/, ''));
+    const requestId = fragment.get('request') || '';
+    const token = fragment.get('token') || '';
+    if (!decision && !requestId && !token) return null;
+    global.history.replaceState(null, '', global.location.pathname);
+    if (!/^(approve|reject)$/.test(decision || '') || !/^car_[a-z0-9]{32}$/i.test(requestId) || !/^[a-f0-9]{64}$/i.test(token)) {
+      return Promise.resolve({ ok: false, code: 'ACCESS_DENIED' });
+    }
+    return transport().decideAccess(requestId, decision, token);
+  }
+  global.CanaryAccessRequest = Object.freeze({ begin, cancel, consumeDecision });
 })(window);
 
 </script><script>
@@ -268,12 +346,13 @@
   };
   const text = (value) => { const el = document.createElement('span'); el.textContent = display(value); return el; };
 
-  function showState(title, detail) {
+  function showState(title, detail, action) {
     $('login-view').classList.add('hidden'); $('data-view').classList.add('hidden');
     const el=$('state-view'); el.replaceChildren(); const h=document.createElement('h2'); h.textContent=title;
     const p=document.createElement('p'); p.className='muted'; p.textContent=detail;
-    const button=document.createElement('button'); button.type='button'; button.className='button secondary state-action'; button.textContent='로그인 화면으로'; button.addEventListener('click',logout);
-    el.append(h,p,button); el.classList.remove('hidden');
+    el.append(h,p);
+    if (action !== false) { const value=action||{}; const button=document.createElement('button'); button.type='button'; button.className='button secondary state-action'; button.textContent=value.label||'로그인 화면으로'; button.addEventListener('click',value.run||logout); el.append(button); }
+    el.classList.remove('hidden');
   }
   function appendCell(row, value) { const cell=document.createElement('td'); cell.append(text(value)); row.append(cell); }
   function optionValues(id, values) {
@@ -336,6 +415,7 @@
   }
   function resetControls() { ['lease-search','filter-region','filter-status','filter-timing'].forEach((id)=>{$(id).value='';});$('sort-key').value='building';$('sort-order').value='asc';$('missing-day').checked=false;$('missing-timing').checked=false; }
   function logout() {
+    if (global.CanaryAccessRequest) global.CanaryAccessRequest.cancel();
     global.CanaryAuth.clearToken(); allRows=[];visibleLimit=50;responseMeta={};closeDetail();resetControls();
     $('data-view').classList.add('hidden'); $('state-view').classList.add('hidden'); $('login-view').classList.remove('hidden');
     ['lease-rows','payment-rows','summary-grid'].forEach((id)=>$(id).replaceChildren()); ['snapshot-meta','build-meta','result-count'].forEach((id)=>$(id).textContent='');
@@ -346,7 +426,15 @@
   }
   async function load() {
     const token=global.CanaryAuth.getToken(); if (!token) return showState('재로그인이 필요합니다','인증 토큰을 확인할 수 없습니다.');
-    try { const transport=global.CanaryClient.transport || defaultTransport; const response=await transport(token); if (response && response.ok === false) { const denied=['NO_GRANT','PENDING','REVOKED','EXPIRED']; throw new Error(denied.includes(response.code)?'ACCESS_DENIED':response.code==='CONFIG_MISSING'?'CONFIG_ERROR':response.code==='RATE_LIMITED'?'RATE_LIMITED':'LOAD_ERROR'); } render(response); }
+    try { const transport=global.CanaryClient.transport || defaultTransport; const response=await transport(token); if (response && response.ok === false) {
+      if (response.code==='NO_GRANT' && global.CanaryAccessRequest) {
+        global.CanaryAccessRequest.begin(token, {
+          onPending:(request)=>showState('접근 승인 요청을 보냈습니다','개인 승인 메일에서 확인하면 이 화면이 자동으로 열립니다. 요청 만료 '+display(request.expires_at)),
+          onApproved:()=>load(),
+          onTerminal:(request)=>{ const code=request&&request.code; if(code==='MAIL_FAILED')showState('승인 메일을 보내지 못했습니다','15분 뒤 다시 로그인해 요청해 주세요.'); else if(code==='REQUEST_REJECTED')showState('접근 요청이 거절되었습니다','승인자에게 확인해 주세요.'); else if(code==='REQUEST_EXPIRED')showState('승인 요청이 만료되었습니다','다시 로그인해 새 요청을 보내 주세요.'); else showState('접근 승인을 확인하지 못했습니다','잠시 후 다시 로그인해 주세요.'); }
+        }); return;
+      }
+      const denied=['NO_GRANT','PENDING','REVOKED','EXPIRED']; throw new Error(denied.includes(response.code)?'ACCESS_DENIED':response.code==='CONFIG_MISSING'?'CONFIG_ERROR':response.code==='RATE_LIMITED'?'RATE_LIMITED':'LOAD_ERROR'); } render(response); }
     catch (e) { logout(); if(e.message==='ACCESS_DENIED') showState('접근 권한이 없습니다','허용목록에 등록된 Google 계정으로 다시 로그인하세요.'); else if(e.message==='CONFIG_ERROR') showState('canary 설정이 준비되지 않았습니다','관리자 설정이 완료될 때까지 실제 데이터는 열리지 않습니다.'); else if(e.message==='RATE_LIMITED') showState('요청이 잠시 제한되었습니다','5분 뒤 다시 로그인해 주세요.'); else showState('데이터를 불러오지 못했습니다','합성 데이터로 대체하지 않습니다. 잠시 후 다시 시도하세요.'); }
   }
   ['lease-search','filter-region','filter-status','filter-timing','sort-key','sort-order','missing-day','missing-timing'].forEach((id)=>$(id).addEventListener('input',()=>renderResults(true)));
@@ -354,6 +442,13 @@
   $('detail-close').addEventListener('click',closeDetail); $('detail-dialog').addEventListener('click',(event)=>{if(event.target===$('detail-dialog'))closeDetail();});
   global.addEventListener('canary-authenticated', load); $('logout-button').addEventListener('click', logout);
   global.CanaryClient = { render, logout, load, transport: null, CANARY_RESPONSE_KEYS, _query:()=>model.query(allRows,queryOptions()) };
+  if (global.CanaryAccessRequest) {
+    const decision=global.CanaryAccessRequest.consumeDecision();
+    if (decision) {
+      showState('접근 승인을 처리하고 있습니다','승인 결과를 확인하는 중입니다.',false);
+      decision.then((result)=>{if(result&&result.ok===true&&result.status==='approved')showState('접근을 승인했습니다','요청자 화면은 잠시 후 자동으로 열립니다.');else if(result&&result.ok===true&&result.status==='rejected')showState('접근 요청을 거절했습니다','요청자에게 데이터가 공개되지 않습니다.');else if(result&&result.code==='TOKEN_USED')showState('이미 처리된 링크입니다','같은 승인 링크는 다시 사용할 수 없습니다.');else if(result&&result.code==='REQUEST_EXPIRED')showState('승인 링크가 만료되었습니다','요청자가 새 접근요청을 보내야 합니다.');else showState('승인을 처리하지 못했습니다','링크가 잘못되었거나 요청이 유효하지 않습니다.');}).catch(()=>showState('승인을 처리하지 못했습니다','네트워크 상태를 확인한 뒤 다시 시도하세요.'));
+    }
+  }
 })(window);
 
 </script>
