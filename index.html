@@ -248,7 +248,7 @@
     ensureListener();
     const id = requestId();
     const frame = document.createElement('iframe');
-    frame.name = 'hiconsy-canary-' + id; frame.hidden = true; frame.title = '보안 데이터 전송';
+    frame.name = 'hiconsy-canary-' + id; frame.hidden = !/(?:^|[?&])debugBridge=1(?:&|$)/.test(global.location.search || ''); frame.title = '보안 데이터 전송';
     const form = document.createElement('form');
     form.method = 'post'; form.action = cfg.bridgeUrl; form.target = frame.name; form.hidden = true;
     form.append(hidden('mode', 'bridge'), hidden('requestId', id), hidden('action', action), hidden('frontendOrigin', global.location.origin));
