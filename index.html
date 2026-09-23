@@ -42,7 +42,7 @@
   </main>
   <dialog id="detail-dialog" class="detail-dialog"><div class="detail-head"><div><p class="eyebrow">LEASE &amp; PAYMENT DETAIL</p><h2 id="detail-title">계약 상세</h2></div><button id="detail-close" class="button secondary" type="button">닫기</button></div><div id="detail-body" class="detail-grid"></div></dialog>
   <script src="https://accounts.google.com/gsi/client" async defer onload="window.CanaryAuth && window.CanaryAuth.initializeGoogle()"></script>
-  <script>window.CANARY_PUBLIC_CONFIG = {"clientId":"43992222283-piv3v0cnjn9hdbtc376pkmnuoa69qude.apps.googleusercontent.com","bridgeUrl":"https://script.google.com/macros/s/AKfycbyORXCE4bUADK8zWes-IoJtP8T-F67xiRC3BLFQQlarXcFrt7J8swNr3fWwjUBgODEs/exec","bridgeMessageOrigin":"https://n-ewqivjylikjtkbqvzg6exveirpkbwvotxu6ui7q-0lu-script.googleusercontent.com","profile":"demo-personal","buildSha":"e41bf1b81c10cc2a9addb7e38bcba890130162da"};</script>
+  <script>window.CANARY_PUBLIC_CONFIG = {"clientId":"43992222283-piv3v0cnjn9hdbtc376pkmnuoa69qude.apps.googleusercontent.com","bridgeUrl":"https://script.google.com/macros/s/AKfycbyORXCE4bUADK8zWes-IoJtP8T-F67xiRC3BLFQQlarXcFrt7J8swNr3fWwjUBgODEs/exec","bridgeMessageOrigin":"https://n-ewqivjylikjtkbqvzg6exveirpkbwvotxu6ui7q-0lu-script.googleusercontent.com","profile":"demo-personal","buildSha":"ba866d4a156b0f75cb09d3a67afe99dc4729063b"};</script>
   <script>
 (function (root, factory) {
   var api = factory();
@@ -229,7 +229,7 @@
     }
     if (!['data','request_access','request_status','decide_access'].includes(action)) return Promise.reject(new Error('BRIDGE_ACTION_INVALID'));
     const payload = values || {};
-    if (action !== 'decide_access' && (typeof payload.idToken !== 'string' || payload.idToken.length < 100)) return Promise.reject(new Error('AUTH_TOKEN_MISSING'));
+    if (typeof payload.idToken !== 'string' || payload.idToken.length < 100) return Promise.reject(new Error('AUTH_TOKEN_MISSING'));
     if (action === 'decide_access' && (!/^car_[a-z0-9]{32}$/i.test(String(payload.accessRequestId || '')) ||
         !/^(approve|reject)$/.test(String(payload.decision || '')) || !/^[a-f0-9]{64}$/i.test(String(payload.decisionToken || '')))) {
       return Promise.reject(new Error('APPROVAL_TOKEN_INVALID'));
@@ -259,7 +259,7 @@
   function request(token) { return submit('data', { idToken: token }); }
   function requestAccess(token) { return submit('request_access', { idToken: token }); }
   function requestStatus(token, accessRequestId) { return submit('request_status', { idToken: token, accessRequestId }); }
-  function decideAccess(accessRequestId, decision, decisionToken) { return submit('decide_access', { accessRequestId, decision, decisionToken }); }
+  function decideAccess(accessRequestId, decision, decisionToken, idToken) { return submit('decide_access', { accessRequestId, decision, decisionToken, idToken }); }
   global.CanaryFormTransport = Object.freeze({ request, requestAccess, requestStatus, decideAccess });
 })(window);
 
@@ -268,6 +268,11 @@
   'use strict';
   let timer = null;
   let stopped = false;
+  // Set only by consumeDecision(), cleared the instant decideWithToken() uses
+  // it. The approve/reject link itself proves nothing about who clicked it —
+  // the caller must obtain a verified Google session (idToken) for the
+  // configured approver before decideWithToken() may run.
+  let pendingDecision = null;
 
   function transport() {
     const value = global.CanaryFormTransport;
@@ -311,20 +316,48 @@
     };
     wait(poll);
   }
+  /**
+   * Parses and immediately strips the approve/reject link from the URL
+   * (same security property as before: the token never lingers in
+   * history). Unlike the old version, this never submits anything — it only
+   * records a pending decision for decideWithToken() to run once the caller
+   * has a verified idToken for the approver's own account.
+   */
   function consumeDecision() {
     const query = new URLSearchParams(global.location.search || '');
     const decision = query.get('decision');
     const fragment = new URLSearchParams((global.location.hash || '').replace(/^#/, ''));
     const requestId = fragment.get('request') || '';
     const token = fragment.get('token') || '';
-    if (!decision && !requestId && !token) return null;
+    if (!decision && !requestId && !token) { pendingDecision = null; return null; }
     global.history.replaceState(null, '', global.location.pathname);
     if (!/^(approve|reject)$/.test(decision || '') || !/^car_[a-z0-9]{32}$/i.test(requestId) || !/^[a-f0-9]{64}$/i.test(token)) {
-      return Promise.resolve({ ok: false, code: 'ACCESS_DENIED' });
+      pendingDecision = null;
+      return { invalid: true };
     }
-    return transport().decideAccess(requestId, decision, token);
+    pendingDecision = { requestId, decision, token };
+    return { invalid: false };
   }
-  global.CanaryAccessRequest = Object.freeze({ begin, cancel, consumeDecision });
+  function hasPendingDecision() { return pendingDecision !== null; }
+  // Outcomes where the link itself is now dead server-side no matter who asks
+  // again — safe to forget. Everything else (wrong account, rate limit,
+  // network/server error, or simply not knowing whether the request landed)
+  // must keep the token so a retry (e.g. logging in with the right account)
+  // can still use it; the server re-checks status/hash each time, so an
+  // unnecessary retry is harmless, but losing the only copy of a still-valid
+  // token is not recoverable — the fragment is already stripped from the URL.
+  const TERMINAL_DECISION_CODES = ['TOKEN_USED', 'REQUEST_EXPIRED'];
+  function decideWithToken(idToken) {
+    if (!pendingDecision) return Promise.resolve({ ok: false, code: 'ACCESS_DENIED' });
+    const current = pendingDecision;
+    return transport().decideAccess(current.requestId, current.decision, current.token, idToken).then((result) => {
+      if ((result && result.ok === true) || (result && TERMINAL_DECISION_CODES.includes(result.code))) {
+        if (pendingDecision === current) pendingDecision = null;
+      }
+      return result;
+    });
+  }
+  global.CanaryAccessRequest = Object.freeze({ begin, cancel, consumeDecision, hasPendingDecision, decideWithToken });
 })(window);
 
 </script><script>
@@ -440,13 +473,33 @@
   ['lease-search','filter-region','filter-status','filter-timing','sort-key','sort-order','missing-day','missing-timing'].forEach((id)=>$(id).addEventListener('input',()=>renderResults(true)));
   $('filter-reset').addEventListener('click',()=>{resetControls();renderResults(true);}); $('show-more').addEventListener('click',()=>{visibleLimit=Math.min(371,visibleLimit+50);renderResults(false);});
   $('detail-close').addEventListener('click',closeDetail); $('detail-dialog').addEventListener('click',(event)=>{if(event.target===$('detail-dialog'))closeDetail();});
-  global.addEventListener('canary-authenticated', load); $('logout-button').addEventListener('click', logout);
+  function renderDecisionResult(result) {
+    if (result&&result.ok===true&&result.status==='approved') showState('접근을 승인했습니다','요청자 화면은 잠시 후 자동으로 열립니다.');
+    else if (result&&result.ok===true&&result.status==='rejected') showState('접근 요청을 거절했습니다','요청자에게 데이터가 공개되지 않습니다.');
+    else if (result&&result.code==='TOKEN_USED') showState('이미 처리된 링크입니다','같은 승인 링크는 다시 사용할 수 없습니다.');
+    else if (result&&result.code==='REQUEST_EXPIRED') showState('승인 링크가 만료되었습니다','요청자가 새 접근요청을 보내야 합니다.');
+    else if (result&&result.code==='NOT_OWNER') showState('이 Google 계정으로는 승인할 수 없습니다','승인자 본인 계정으로 다시 로그인하세요.');
+    else showState('승인을 처리하지 못했습니다','링크가 잘못되었거나 요청이 유효하지 않습니다.');
+  }
+  function handlePendingDecision() {
+    const token=global.CanaryAuth.getToken();
+    if (!token) return showState('재로그인이 필요합니다','인증 토큰을 확인할 수 없습니다.');
+    showState('접근 승인을 처리하고 있습니다','승인 결과를 확인하는 중입니다.',false);
+    global.CanaryAccessRequest.decideWithToken(token).then(renderDecisionResult).catch(()=>showState('승인을 처리하지 못했습니다','네트워크 상태를 확인한 뒤 다시 시도하세요.'));
+  }
+  global.addEventListener('canary-authenticated', () => {
+    if (global.CanaryAccessRequest && global.CanaryAccessRequest.hasPendingDecision()) handlePendingDecision();
+    else load();
+  });
+  $('logout-button').addEventListener('click', logout);
   global.CanaryClient = { render, logout, load, transport: null, CANARY_RESPONSE_KEYS, _query:()=>model.query(allRows,queryOptions()) };
   if (global.CanaryAccessRequest) {
-    const decision=global.CanaryAccessRequest.consumeDecision();
-    if (decision) {
-      showState('접근 승인을 처리하고 있습니다','승인 결과를 확인하는 중입니다.',false);
-      decision.then((result)=>{if(result&&result.ok===true&&result.status==='approved')showState('접근을 승인했습니다','요청자 화면은 잠시 후 자동으로 열립니다.');else if(result&&result.ok===true&&result.status==='rejected')showState('접근 요청을 거절했습니다','요청자에게 데이터가 공개되지 않습니다.');else if(result&&result.code==='TOKEN_USED')showState('이미 처리된 링크입니다','같은 승인 링크는 다시 사용할 수 없습니다.');else if(result&&result.code==='REQUEST_EXPIRED')showState('승인 링크가 만료되었습니다','요청자가 새 접근요청을 보내야 합니다.');else showState('승인을 처리하지 못했습니다','링크가 잘못되었거나 요청이 유효하지 않습니다.');}).catch(()=>showState('승인을 처리하지 못했습니다','네트워크 상태를 확인한 뒤 다시 시도하세요.'));
+    const captured=global.CanaryAccessRequest.consumeDecision();
+    if (captured && captured.invalid) {
+      showState('승인을 처리하지 못했습니다','링크가 잘못되었거나 요청이 유효하지 않습니다.');
+    } else if (captured) {
+      const message=$('auth-message');
+      if (message) message.textContent='이 요청을 승인·거절하려면 승인자 Google 계정으로 로그인하세요.';
     }
   }
 })(window);
