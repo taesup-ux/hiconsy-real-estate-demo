@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>하이컨시 | 임대차 canary</title>
+  <style>
+:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#18222d;background:#f4f6f8;line-height:1.5}*{box-sizing:border-box}body{margin:0}.shell{max-width:1440px;margin:auto;padding:32px 5vw 64px}.masthead{display:flex;justify-content:space-between;gap:24px;align-items:center;margin-bottom:48px}.brand{display:flex;flex-direction:column;align-items:flex-start;gap:4px}.brand-logo{width:118px;height:auto;display:block}.brand span{font-size:11px;color:#637786;letter-spacing:.02em}.page-title{text-align:right}.eyebrow{margin:0 0 6px;color:#668092;font-size:11px;font-weight:800;letter-spacing:.12em}.masthead h1,.toolbar h2,.login-panel h2{margin:0}.masthead h1{font-size:23px}.panel{background:#fff;border:1px solid #dfe6eb;border-radius:18px;padding:28px;box-shadow:0 8px 28px #18324708}.login-panel{max-width:540px;margin:9vh auto}.login-panel h2{font-size:25px;margin-bottom:12px;word-break:keep-all}.muted{color:#687b87}.google-signin{min-height:44px;margin:24px 0 10px}.status-message{font-size:13px;color:#6b7d87}.hidden{display:none!important}.toolbar{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px}.build-meta{margin:4px 0 0;color:#80909a;font:700 10px/1.4 ui-monospace,monospace}.button{border:0;border-radius:10px;padding:11px 16px;cursor:pointer;font-weight:700;white-space:nowrap}.secondary{background:#e8eef2;color:#234052}.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}.summary-card{background:#eaf1f4;border-radius:14px;padding:18px}.summary-card strong{display:block;font-size:24px}.filter-panel{display:grid;grid-template-columns:minmax(250px,2fr) repeat(5,minmax(110px,1fr));gap:12px;align-items:end;padding:18px;margin-bottom:12px}.filter-panel label{display:grid;gap:5px;color:#607682;font-size:11px;font-weight:700}.filter-panel input,.filter-panel select{min-width:0;width:100%;border:1px solid #cad6dd;border-radius:9px;background:#fff;padding:10px;color:#18222d}.filter-panel .check-field{display:flex;align-items:center;gap:7px;min-height:42px}.filter-panel .check-field input{width:auto}.result-bar{display:flex;justify-content:space-between;gap:20px;align-items:center;margin:0 4px 10px;color:#687b87;font-size:12px}.result-bar strong{color:#183247;font-size:14px}.table-wrap{overflow:auto;background:#fff;border:1px solid #dfe6eb;border-radius:18px;margin-bottom:12px}table{border-collapse:collapse;width:100%;min-width:1420px;text-align:left}th,td{padding:15px 16px;border-bottom:1px solid #edf1f3;font-size:13px;white-space:nowrap}th{background:#f8fafb;color:#607682;font-size:11px;letter-spacing:.05em}tbody tr{cursor:pointer}tbody tr:hover,tbody tr:focus{background:#eef5f7;outline:0}.more-button{display:block;margin:0 auto 24px}.payment-panel{margin-bottom:24px}.payment-list{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.payment-item{padding:14px;background:#f7f9fa;border-radius:10px}.payment-item span{display:block;color:#71838d;font-size:12px}.empty-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.state-panel{text-align:center;max-width:620px;margin:10vh auto}.state-action{margin-top:14px}.detail-dialog{width:min(820px,calc(100vw - 32px));border:0;border-radius:20px;padding:26px;box-shadow:0 24px 80px #10253344}.detail-dialog::backdrop{background:#14273399}.detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.detail-head h2{margin:0}.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}.detail-item{display:grid;gap:4px;border:1px solid #e4eaee;border-radius:11px;padding:12px}.detail-item span{color:#6c7d87;font-size:11px}.detail-item strong{font-size:13px;word-break:break-word}@media(max-width:1050px){.filter-panel{grid-template-columns:repeat(3,1fr)}.search-field{grid-column:span 2}}@media(max-width:700px){.shell{padding:20px 16px 40px}.masthead{align-items:flex-start;margin-bottom:28px}.brand-logo{width:94px}.brand span{font-size:9px}.page-title h1{font-size:17px}.login-panel{margin:7vh auto;padding:22px}.summary-grid{grid-template-columns:1fr 1fr}.payment-list,.empty-grid,.detail-grid{grid-template-columns:1fr}.summary-card strong{font-size:18px;white-space:nowrap}.toolbar{align-items:flex-start;gap:16px}.toolbar h2{font-size:22px}.filter-panel{grid-template-columns:1fr 1fr;padding:14px}.search-field{grid-column:1/-1}.result-bar{align-items:flex-start;flex-direction:column;gap:2px}.detail-dialog{padding:20px}}
+
+  </style>
+</head>
+<body>
+  <main class="shell" id="app" data-mode="canary">
+    <header class="masthead"><div class="brand"><img class="brand-logo" src="data:image/png;base64,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" alt="하이컨시"><span>통합부동산관리시스템</span></div><div class="page-title"><p class="eyebrow">PRIVATE READ ONLY</p><h1>임대차·지출결의 조회</h1></div></header>
+    <section id="login-view" class="panel login-panel" aria-live="polite">
+      <p class="eyebrow">PRIVATE CANARY</p><h2>승인된 Google 계정으로 로그인하세요</h2>
+      <p class="muted">실제 임대차 금액은 승인된 사용자에게만 표시됩니다. 이 화면에는 인증 전 업무 데이터가 포함되지 않습니다.</p>
+      <div id="google-signin" class="google-signin" aria-label="Google 로그인"></div>
+      <p id="auth-message" class="status-message" role="status">인증을 준비하는 중입니다.</p>
+    </section>
+    <section id="state-view" class="panel state-panel hidden" aria-live="polite"></section>
+    <section id="data-view" class="hidden" aria-live="polite">
+      <div class="toolbar"><div><p class="eyebrow">READ ONLY SNAPSHOT</p><h2>임대차 현황</h2><p id="snapshot-meta" class="muted"></p><p id="build-meta" class="build-meta"></p></div><button id="logout-button" class="button secondary" type="button">로그아웃</button></div>
+      <div class="summary-grid" id="summary-grid"></div>
+      <section class="panel filter-panel" aria-label="임대차 검색과 필터">
+        <label class="search-field">통합검색<input id="lease-search" type="search" autocomplete="off" placeholder="건물·관·물건ID·계약ID·프로젝트코드"></label>
+        <label>지역<select id="filter-region"><option value="">전체</option></select></label>
+        <label>계약상태<select id="filter-status"><option value="">전체</option></select></label>
+        <label>지급조건<select id="filter-timing"><option value="">전체</option></select></label>
+        <label>정렬<select id="sort-key"><option value="building">건물명</option><option value="contract_end">계약 종료일</option><option value="monthly_total_vat_included">월 합계</option></select></label>
+        <label>방향<select id="sort-order"><option value="asc">오름차순</option><option value="desc">내림차순</option></select></label>
+        <label class="check-field"><input id="missing-day" type="checkbox"> 지급일 미확인</label>
+        <label class="check-field"><input id="missing-timing" type="checkbox"> 선후불 미확인</label>
+        <button id="filter-reset" class="button secondary" type="button">초기화</button>
+      </section>
+      <div class="result-bar"><strong id="result-count">0건</strong><span>행을 누르면 계약·지결 상세를 확인할 수 있습니다.</span></div>
+      <div class="table-wrap"><table><thead><tr><th>건물·호실</th><th>계약기간</th><th>월 차임</th><th>월 관리비</th><th>월 합계</th><th>지급일</th><th>조건</th><th>회계단위</th><th>프로젝트코드</th><th>사업장</th><th>계약서</th></tr></thead><tbody id="lease-rows"></tbody></table></div>
+      <button id="show-more" class="button secondary more-button hidden" type="button">50건 더 보기</button>
+      <section class="panel payment-panel"><p class="eyebrow">PAYMENT REQUEST</p><h2>지출결의 필드</h2><div id="payment-rows" class="payment-list"></div></section>
+      <div class="empty-grid"><section class="panel"><h3>인테리어</h3><p class="muted">데이터 연결 대기</p></section><section class="panel"><h3>유지보수</h3><p class="muted">데이터 연결 대기</p></section></div>
+    </section>
+  </main>
+  <dialog id="detail-dialog" class="detail-dialog"><div class="detail-head"><div><p class="eyebrow">LEASE &amp; PAYMENT DETAIL</p><h2 id="detail-title">계약 상세</h2></div><button id="detail-close" class="button secondary" type="button">닫기</button></div><div id="detail-body" class="detail-grid"></div></dialog>
+  <script src="https://accounts.google.com/gsi/client" async defer onload="window.CanaryAuth && window.CanaryAuth.initializeGoogle()"></script>
+  <script>window.CANARY_PUBLIC_CONFIG = {"clientId":"43992222283-piv3v0cnjn9hdbtc376pkmnuoa69qude.apps.googleusercontent.com","bridgeUrl":"https://script.google.com/macros/s/AKfycbyORXCE4bUADK8zWes-IoJtP8T-F67xiRC3BLFQQlarXcFrt7J8swNr3fWwjUBgODEs/exec","bridgeMessageOrigin":"https://n-ewqivjylikjtkbqvzg6exveirpkbwvotxu6ui7q-0lu-script.googleusercontent.com","profile":"demo-personal","buildSha":"5e9c455205e1c4cbc2cdfb09b5fa434790bbd620"};</script>
+  <script>
+(function (root, factory) {
+  var api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  if (root) root.LeaseReadModel = api;
+})(typeof window !== 'undefined' ? window : this, function () {
+  'use strict';
+
+  var ROW_KEYS = [
+    'property_id', 'lease_id', 'region', 'academy', 'building', 'unit',
+    'contract_start', 'contract_end', 'status', 'monthly_rent', 'monthly_maintenance',
+    'monthly_total_vat_included', 'payment_day', 'payment_timing', 'accounting_unit',
+    'project_code', 'business_site', 'contract_document_state', 'contract_document_url',
+    'snapshot_generated_at', 'source_sha256', 'row_fingerprint'
+  ];
+  var SEARCH_KEYS = ['property_id', 'lease_id', 'region', 'academy', 'building', 'unit', 'accounting_unit', 'project_code', 'business_site'];
+  var FILTER_KEYS = ['region', 'status', 'payment_timing', 'missing_payment_day', 'missing_payment_timing'];
+  var SORT_KEYS = ['contract_end', 'monthly_total_vat_included', 'building'];
+  var OPTION_KEYS = ['filters', 'limit', 'offset', 'order', 'search', 'sort'];
+
+  function exactKeys(value, expected, code) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(code);
+    var actual = Object.keys(value).sort(), wanted = expected.slice().sort();
+    if (actual.length !== wanted.length || actual.some(function (key, index) { return key !== wanted[index]; })) throw new Error(code);
+  }
+  function text(value) { return value === null || value === undefined ? '' : String(value); }
+  function normalized(value) { return text(value).toLocaleLowerCase('ko-KR').replace(/\s+/g, ''); }
+  function missing(value) { return text(value).trim() === ''; }
+  function number(value) {
+    if (missing(value)) return null;
+    var parsed = Number(text(value).replace(/,/g, ''));
+    if (!Number.isFinite(parsed)) throw new Error('READ_MODEL_NUMBER_INVALID');
+    return parsed;
+  }
+  function validateRow(row) {
+    exactKeys(row, ROW_KEYS, 'READ_MODEL_ROW_KEYS_INVALID');
+    if (row.contract_document_url !== '' || ['internal_share_pending', 'internal_authorized'].indexOf(row.contract_document_state) < 0) throw new Error('READ_MODEL_DOCUMENT_INVALID');
+    ['monthly_rent', 'monthly_maintenance', 'monthly_total_vat_included'].forEach(function (key) { number(row[key]); });
+    return row;
+  }
+  function validateRows(rows) {
+    if (!Array.isArray(rows)) throw new Error('READ_MODEL_ROWS_INVALID');
+    rows.forEach(validateRow);
+    return rows;
+  }
+  function validateFilters(filters) {
+    var value = filters || {};
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('READ_MODEL_FILTERS_INVALID');
+    Object.keys(value).forEach(function (key) { if (FILTER_KEYS.indexOf(key) < 0) throw new Error('READ_MODEL_FILTER_UNKNOWN'); });
+    ['missing_payment_day', 'missing_payment_timing'].forEach(function (key) {
+      if (Object.prototype.hasOwnProperty.call(value, key) && typeof value[key] !== 'boolean') throw new Error('READ_MODEL_FILTER_INVALID:' + key);
+    });
+    return value;
+  }
+  function options(input) {
+    var source = input || {};
+    if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error('READ_MODEL_OPTIONS_INVALID');
+    Object.keys(source).forEach(function (key) { if (OPTION_KEYS.indexOf(key) < 0) throw new Error('READ_MODEL_OPTION_UNKNOWN'); });
+    var out = {
+      search: text(source.search), filters: validateFilters(source.filters),
+      sort: source.sort || 'building', order: source.order || 'asc',
+      offset: source.offset === undefined ? 0 : source.offset,
+      limit: source.limit === undefined ? 50 : source.limit
+    };
+    if (SORT_KEYS.indexOf(out.sort) < 0) throw new Error('READ_MODEL_SORT_UNKNOWN');
+    if (['asc', 'desc'].indexOf(out.order) < 0) throw new Error('READ_MODEL_ORDER_INVALID');
+    if (!Number.isInteger(out.offset) || out.offset < 0 || !Number.isInteger(out.limit) || out.limit < 1 || out.limit > 371) throw new Error('READ_MODEL_PAGE_INVALID');
+    return out;
+  }
+  function matches(row, query, filters) {
+    if (query && !SEARCH_KEYS.some(function (key) { return normalized(row[key]).indexOf(query) >= 0; })) return false;
+    if (filters.region && text(row.region) !== text(filters.region)) return false;
+    if (filters.status && text(row.status) !== text(filters.status)) return false;
+    if (filters.payment_timing && text(row.payment_timing) !== text(filters.payment_timing)) return false;
+    if (filters.missing_payment_day === true && !missing(row.payment_day)) return false;
+    if (filters.missing_payment_timing === true && !missing(row.payment_timing)) return false;
+    return true;
+  }
+  function compare(a, b, key) {
+    var left, right;
+    if (key === 'monthly_total_vat_included') { left = number(a[key]); right = number(b[key]); left = left === null ? -Infinity : left; right = right === null ? -Infinity : right; }
+    else { left = text(a[key]); right = text(b[key]); }
+    if (left < right) return -1;
+    if (left > right) return 1;
+    return text(a.property_id).localeCompare(text(b.property_id), 'ko-KR');
+  }
+  function query(rows, input) {
+    validateRows(rows);
+    var opt = options(input), needle = normalized(opt.search);
+    var filtered = rows.filter(function (row) { return matches(row, needle, opt.filters); });
+    filtered = filtered.map(function (row, index) { return { row: row, index: index }; }).sort(function (a, b) {
+      var value = compare(a.row, b.row, opt.sort);
+      if (value === 0) value = a.index - b.index;
+      return opt.order === 'desc' ? -value : value;
+    }).map(function (item) { return item.row; });
+    return { total: filtered.length, rows: filtered.slice(opt.offset, opt.offset + opt.limit), has_more: opt.offset + opt.limit < filtered.length, options: opt };
+  }
+  function summary(rows) {
+    validateRows(rows);
+    return {
+      total: rows.length,
+      monthly_rent: rows.reduce(function (sum, row) { return sum + (number(row.monthly_rent) || 0); }, 0),
+      monthly_maintenance: rows.reduce(function (sum, row) { return sum + (number(row.monthly_maintenance) || 0); }, 0),
+      missing_payment_day: rows.filter(function (row) { return missing(row.payment_day); }).length,
+      missing_payment_timing: rows.filter(function (row) { return missing(row.payment_timing); }).length
+    };
+  }
+  function detail(row) {
+    validateRow(row);
+    return JSON.parse(JSON.stringify(row));
+  }
+  return { ROW_KEYS: ROW_KEYS, SEARCH_KEYS: SEARCH_KEYS, FILTER_KEYS: FILTER_KEYS, SORT_KEYS: SORT_KEYS, validateRow: validateRow, validateRows: validateRows, query: query, summary: summary, detail: detail, missing: missing };
+});
+
+</script><script>
+(function (global) {
+  'use strict';
+  let idToken = null;
+  let clientId = '';
+  function setClientId(value) { clientId = typeof value === 'string' ? value : ''; }
+  function getToken() { return idToken; }
+  function clearToken() { idToken = null; }
+  function handleCredential(response) {
+    if (!response || typeof response.credential !== 'string' || !response.credential) throw new Error('AUTH_TOKEN_MISSING');
+    idToken = response.credential;
+    if (typeof global.dispatchEvent === 'function') global.dispatchEvent(new CustomEvent('canary-authenticated'));
+  }
+  function initializeGoogle() {
+    if (!clientId || !global.google || !google.accounts || !google.accounts.id) return false;
+    google.accounts.id.initialize({ client_id: clientId, callback: handleCredential });
+    google.accounts.id.renderButton(document.getElementById('google-signin'), { theme: 'outline', size: 'large', width: 320 });
+    return true;
+  }
+  global.CanaryAuth = Object.freeze({ setClientId, getToken, clearToken, handleCredential, initializeGoogle });
+})(window);
+
+</script><script>
+(function (global) {
+  'use strict';
+  const pending = new Map();
+  let listening = false;
+
+  function config() { return global.CANARY_PUBLIC_CONFIG || {}; }
+  function validUrl(value, hostPattern) {
+    try { const parsed = new URL(value); return parsed.protocol === 'https:' && hostPattern.test(parsed.hostname); }
+    catch (_) { return false; }
+  }
+  function requestId() {
+    if (global.crypto && typeof global.crypto.randomUUID === 'function') return global.crypto.randomUUID();
+    const bytes = new Uint8Array(18); global.crypto.getRandomValues(bytes);
+    return Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  }
+  function cleanup(item) {
+    global.clearTimeout(item.timer);
+    item.form.remove();
+    item.frame.remove();
+  }
+  function onMessage(event) {
+    const expected = config().bridgeMessageOrigin;
+    if (!expected || event.origin !== expected) return;
+    const data = event.data;
+    if (!data || data.type !== 'hiconsy-canary-response' || typeof data.requestId !== 'string') return;
+    const item = pending.get(data.requestId);
+    if (!item) return;
+    pending.delete(data.requestId); cleanup(item);
+    if (!Object.prototype.hasOwnProperty.call(data, 'payload')) return item.reject(new Error('BRIDGE_RESPONSE_INVALID'));
+    item.resolve(data.payload);
+  }
+  function ensureListener() {
+    if (listening) return;
+    global.addEventListener('message', onMessage);
+    listening = true;
+  }
+  function hidden(name, value) {
+    const input = document.createElement('input');
+    input.type = 'hidden'; input.name = name; input.value = value;
+    return input;
+  }
+  function request(token) {
+    const cfg = config();
+    if (typeof token !== 'string' || token.length < 100) return Promise.reject(new Error('AUTH_TOKEN_MISSING'));
+    if (!validUrl(cfg.bridgeUrl, /^script\.google\.com$/) ||
+        !validUrl(cfg.bridgeMessageOrigin, /-script\.googleusercontent\.com$/)) {
+      return Promise.reject(new Error('BRIDGE_CONFIG_INVALID'));
+    }
+    ensureListener();
+    const id = requestId();
+    const frame = document.createElement('iframe');
+    frame.name = 'hiconsy-canary-' + id; frame.hidden = true; frame.title = '보안 데이터 전송';
+    const form = document.createElement('form');
+    form.method = 'post'; form.action = cfg.bridgeUrl; form.target = frame.name; form.hidden = true;
+    form.append(hidden('mode', 'bridge'), hidden('requestId', id), hidden('idToken', token), hidden('frontendOrigin', global.location.origin));
+    document.body.append(frame, form);
+    return new Promise((resolve, reject) => {
+      const timer = global.setTimeout(() => {
+        const item = pending.get(id); if (!item) return;
+        pending.delete(id); cleanup(item); reject(new Error('BRIDGE_TIMEOUT'));
+      }, 30000);
+      pending.set(id, { resolve, reject, timer, form, frame });
+      form.submit();
+      global.setTimeout(() => { while (form.firstChild) form.removeChild(form.firstChild); }, 0);
+    });
+  }
+  global.CanaryFormTransport = Object.freeze({ request });
+})(window);
+
+</script><script>
+(function (global) {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const model = global.LeaseReadModel;
+  if (!model) throw new Error('READ_MODEL_UNAVAILABLE');
+  const CANARY_RESPONSE_KEYS = Object.freeze(model.ROW_KEYS.slice());
+  let allRows = [];
+  let visibleLimit = 50;
+  let responseMeta = {};
+
+  const display = (value) => value === '' || value === null || value === undefined ? '미확인' : String(value);
+  const money = (value) => {
+    if (display(value) === '미확인') return '미확인';
+    const parsed = Number(String(value).replaceAll(',', ''));
+    return Number.isFinite(parsed) ? parsed.toLocaleString() : String(value);
+  };
+  const text = (value) => { const el = document.createElement('span'); el.textContent = display(value); return el; };
+
+  function showState(title, detail) {
+    $('login-view').classList.add('hidden'); $('data-view').classList.add('hidden');
+    const el=$('state-view'); el.replaceChildren(); const h=document.createElement('h2'); h.textContent=title;
+    const p=document.createElement('p'); p.className='muted'; p.textContent=detail;
+    const button=document.createElement('button'); button.type='button'; button.className='button secondary state-action'; button.textContent='로그인 화면으로'; button.addEventListener('click',logout);
+    el.append(h,p,button); el.classList.remove('hidden');
+  }
+  function appendCell(row, value) { const cell=document.createElement('td'); cell.append(text(value)); row.append(cell); }
+  function optionValues(id, values) {
+    const select=$(id); while(select.options.length > 1) select.remove(1);
+    Array.from(new Set(values.filter((value)=>display(value)!=='미확인').map(String))).sort((a,b)=>a.localeCompare(b,'ko-KR')).forEach((value)=>{const option=document.createElement('option');option.value=value;option.textContent=value;select.append(option);});
+  }
+  function filterOptions() {
+    optionValues('filter-region',allRows.map((row)=>row.region));
+    optionValues('filter-status',allRows.map((row)=>row.status));
+    optionValues('filter-timing',allRows.map((row)=>row.payment_timing));
+  }
+  function queryOptions() {
+    const filters={};
+    if($('filter-region').value) filters.region=$('filter-region').value;
+    if($('filter-status').value) filters.status=$('filter-status').value;
+    if($('filter-timing').value) filters.payment_timing=$('filter-timing').value;
+    if($('missing-day').checked) filters.missing_payment_day=true;
+    if($('missing-timing').checked) filters.missing_payment_timing=true;
+    return {search:$('lease-search').value,filters,sort:$('sort-key').value,order:$('sort-order').value,offset:0,limit:visibleLimit};
+  }
+  function closeDetail() {
+    const dialog=$('detail-dialog'); if(typeof dialog.close==='function'&&dialog.open) dialog.close(); else dialog.removeAttribute('open');
+    $('detail-body').replaceChildren();
+  }
+  function detailField(label,value,moneyValue) {
+    const item=document.createElement('div');item.className='detail-item';const dt=document.createElement('span');dt.textContent=label;
+    const dd=document.createElement('strong');dd.textContent=moneyValue&&display(value)!=='미확인'?money(value)+'원':display(value);item.append(dt,dd);return item;
+  }
+  function openDetail(row) {
+    const safe=model.detail(row); $('detail-title').textContent=display(safe.building)+' · '+display(safe.unit);
+    const body=$('detail-body');body.replaceChildren();[
+      ['물건ID',safe.property_id],['계약ID',safe.lease_id],['지역·관',display(safe.region)+' · '+display(safe.academy)],['계약상태',safe.status],
+      ['계약 시작일',safe.contract_start],['계약 종료일',safe.contract_end],['월 차임',safe.monthly_rent,true],['월 관리비',safe.monthly_maintenance,true],
+      ['월 합계(VAT 포함)',safe.monthly_total_vat_included,true],['지급일',safe.payment_day],['지급조건',safe.payment_timing],['회계단위',safe.accounting_unit],
+      ['프로젝트코드',safe.project_code],['사업장',safe.business_site],['계약서','사내 공유 후 연결']
+    ].forEach((item)=>body.append(detailField(item[0],item[1],item[2])));
+    const dialog=$('detail-dialog'); if(typeof dialog.showModal==='function') dialog.showModal(); else dialog.setAttribute('open','');
+  }
+  function renderRows(result) {
+    $('result-count').textContent=result.total.toLocaleString()+'건';
+    const rows=$('lease-rows'); rows.replaceChildren();
+    result.rows.forEach((r)=>{const tr=document.createElement('tr');tr.tabIndex=0;tr.setAttribute('role','button');tr.setAttribute('aria-label',display(r.building)+' '+display(r.unit)+' 상세');
+      appendCell(tr,display(r.building)+' · '+display(r.unit)); appendCell(tr,display(r.contract_start)+' – '+display(r.contract_end));
+      ['monthly_rent','monthly_maintenance','monthly_total_vat_included'].forEach((key)=>appendCell(tr,money(r[key])));
+      ['payment_day','payment_timing','accounting_unit','project_code','business_site'].forEach((key)=>appendCell(tr,r[key])); appendCell(tr,'사내 공유 후 연결');
+      tr.addEventListener('click',()=>openDetail(r)); tr.addEventListener('keydown',(event)=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openDetail(r);}}); rows.append(tr);});
+    $('show-more').classList.toggle('hidden',!result.has_more);
+    const payments=$('payment-rows'); payments.replaceChildren(); result.rows.slice(0,6).forEach((r)=>{const item=document.createElement('div');item.className='payment-item';item.append(text(display(r.building)+' · '+display(r.unit)),text('차임 '+money(r.monthly_rent)+' / 관리비 '+money(r.monthly_maintenance)),text('지급일 '+display(r.payment_day)+' · '+display(r.payment_timing)),text('회계단위 '+display(r.accounting_unit)+' · 프로젝트코드 '+display(r.project_code)+' · 사업장 '+display(r.business_site)));payments.append(item);});
+  }
+  function renderResults(resetLimit) { if(resetLimit) visibleLimit=50; renderRows(model.query(allRows,queryOptions())); }
+  function render(data) {
+    if (!data || !Array.isArray(data.rows)) throw new Error('INVALID_CANARY_RESPONSE');
+    model.validateRows(data.rows);
+    allRows=data.rows.slice(); responseMeta={snapshot_generated_at:data.snapshot_generated_at||'',profile:data.profile||((global.CANARY_PUBLIC_CONFIG||{}).profile)||'demo-personal',build_sha:data.build_sha||((global.CANARY_PUBLIC_CONFIG||{}).buildSha)||'local'};
+    $('login-view').classList.add('hidden'); $('state-view').classList.add('hidden'); $('data-view').classList.remove('hidden');
+    $('snapshot-meta').textContent='생성시각 '+display(responseMeta.snapshot_generated_at)+' · '+allRows.length+'건'; $('build-meta').textContent='프로필 '+responseMeta.profile+' · 빌드 '+responseMeta.build_sha;
+    const totals=model.summary(allRows); const summary=[['전체 계약',totals.total+'건'],['월 차임',totals.monthly_rent.toLocaleString()+'원'],['월 관리비',totals.monthly_maintenance.toLocaleString()+'원'],['지결 미확인',(totals.missing_payment_day+totals.missing_payment_timing).toLocaleString()+'건']];
+    const summaryRoot=$('summary-grid'); summaryRoot.replaceChildren(); summary.forEach((item)=>{const card=document.createElement('div');card.className='summary-card';const label=document.createElement('span');label.textContent=item[0];const value=document.createElement('strong');value.textContent=item[1];card.append(label,value);summaryRoot.append(card);});
+    filterOptions(); renderResults(true);
+  }
+  function resetControls() { ['lease-search','filter-region','filter-status','filter-timing'].forEach((id)=>{$(id).value='';});$('sort-key').value='building';$('sort-order').value='asc';$('missing-day').checked=false;$('missing-timing').checked=false; }
+  function logout() {
+    global.CanaryAuth.clearToken(); allRows=[];visibleLimit=50;responseMeta={};closeDetail();resetControls();
+    $('data-view').classList.add('hidden'); $('state-view').classList.add('hidden'); $('login-view').classList.remove('hidden');
+    ['lease-rows','payment-rows','summary-grid'].forEach((id)=>$(id).replaceChildren()); ['snapshot-meta','build-meta','result-count'].forEach((id)=>$(id).textContent='');
+  }
+  function defaultTransport(token) {
+    if (global.CanaryFormTransport && (global.CANARY_PUBLIC_CONFIG || {}).bridgeUrl) return global.CanaryFormTransport.request(token);
+    return new Promise((resolve,reject)=>{ if (!global.google || !global.google.script || !global.google.script.run) return reject(new Error('TRANSPORT_UNAVAILABLE')); global.google.script.run.withSuccessHandler(resolve).withFailureHandler(()=>reject(new Error('NETWORK_ERROR'))).canaryData(token); });
+  }
+  async function load() {
+    const token=global.CanaryAuth.getToken(); if (!token) return showState('재로그인이 필요합니다','인증 토큰을 확인할 수 없습니다.');
+    try { const transport=global.CanaryClient.transport || defaultTransport; const response=await transport(token); if (response && response.ok === false) { const denied=['NO_GRANT','PENDING','REVOKED','EXPIRED']; throw new Error(denied.includes(response.code)?'ACCESS_DENIED':response.code==='CONFIG_MISSING'?'CONFIG_ERROR':response.code==='RATE_LIMITED'?'RATE_LIMITED':'LOAD_ERROR'); } render(response); }
+    catch (e) { logout(); if(e.message==='ACCESS_DENIED') showState('접근 권한이 없습니다','허용목록에 등록된 Google 계정으로 다시 로그인하세요.'); else if(e.message==='CONFIG_ERROR') showState('canary 설정이 준비되지 않았습니다','관리자 설정이 완료될 때까지 실제 데이터는 열리지 않습니다.'); else if(e.message==='RATE_LIMITED') showState('요청이 잠시 제한되었습니다','5분 뒤 다시 로그인해 주세요.'); else showState('데이터를 불러오지 못했습니다','합성 데이터로 대체하지 않습니다. 잠시 후 다시 시도하세요.'); }
+  }
+  ['lease-search','filter-region','filter-status','filter-timing','sort-key','sort-order','missing-day','missing-timing'].forEach((id)=>$(id).addEventListener('input',()=>renderResults(true)));
+  $('filter-reset').addEventListener('click',()=>{resetControls();renderResults(true);}); $('show-more').addEventListener('click',()=>{visibleLimit=Math.min(371,visibleLimit+50);renderResults(false);});
+  $('detail-close').addEventListener('click',closeDetail); $('detail-dialog').addEventListener('click',(event)=>{if(event.target===$('detail-dialog'))closeDetail();});
+  global.addEventListener('canary-authenticated', load); $('logout-button').addEventListener('click', logout);
+  global.CanaryClient = { render, logout, load, transport: null, CANARY_RESPONSE_KEYS, _query:()=>model.query(allRows,queryOptions()) };
+})(window);
+
+</script>
+  <script>window.CanaryAuth.setClientId(window.CANARY_PUBLIC_CONFIG.clientId); window.CanaryAuth.initializeGoogle();</script>
+</body>
+</html>
